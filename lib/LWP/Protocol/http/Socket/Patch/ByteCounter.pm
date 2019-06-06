@@ -8,8 +8,7 @@ use strict;
 no warnings;
 use Log::ger;
 
-use Module::Patch ();
-use base qw(Module::Patch);
+use Module::Patch;
 
 my $add_send = sub {
     my $ctx  = shift;
@@ -27,27 +26,23 @@ my $add_recv = sub {
     $ctx->{orig}->(@_);
 };
 
-sub patch_data {
-    return {
-        v => 3,
-        config => {
+my $handle = Module::Patch::patch_package(
+    'LWP::Protocol::http::Socket',
+    [
+        {
+            action => 'add',
+            #mod_version => qr/^6\./,
+            sub_name => 'syswritex',
+            code => $add_send,
         },
-        patches => [
-            {
-                action => 'add',
-                #mod_version => qr/^6\./,
-                sub_name => 'send',
-                code => $add_send,
-            },
-            {
-                action => 'add',
-                #mod_version => qr/^6\./,
-                sub_name => 'recv',
-                code => $add_recv,
-            },
-        ],
-    };
-}
+        {
+            action => 'add',
+            #mod_version => qr/^6\./,
+            sub_name => 'sysread',
+            code => $add_recv,
+        },
+    ],
+);
 
 1;
 # ABSTRACT: Add sleep() between requests to slow down
